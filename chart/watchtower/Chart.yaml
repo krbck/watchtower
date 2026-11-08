@@ -1,0 +1,17 @@
+apiVersion: v2
+name: watchtower
+description: Watchtower — Kubernetes mimari ve platform gözlemlenebilirlik operatoru
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0"
+home: https://github.com/krbck/watchtower
+sources:
+  - https://github.com/krbck/watchtower
+keywords:
+  - kubernetes
+  - operator
+  - observability
+  - troubleshooting
+maintainers:
+  - name: krbck

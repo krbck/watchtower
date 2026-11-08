@@ -1,0 +1,65 @@
+{{- if .Values.controller.rbac.create }}
+# Observer surface: read-only (D-003: least privilege).
+# Remediation permissions will be added later via dedicated Roles
+# gated by policy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "watchtower.controllerName" . }}
+  labels:
+    {{- include "watchtower.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["watchtower.krbck.io"]
+    resources: ["connectivitychecks"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["watchtower.krbck.io"]
+    resources: ["connectivitychecks/status"]
+    verbs: ["get", "update", "patch"]
+  # faz-1 chain needs: services + pods (read-only)
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # topology mapper (D-015): read-only cluster graph
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  # D-035: endpoint readiness (mapper + checker "endpoints ready" step)
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  # D-038: ingressclasses feed the "cluster" cell (ingc: nodes) and the
+  # host trace's class → controller resolution.
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  # D-036/D-037: environment detection — metadata-only watch on CRDs so
+  # optional integrations (Istio) start/stop when their CRDs appear/vanish.
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  # kubernetes event write — used by the reconciler
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "watchtower.controllerName" . }}
+  labels:
+    {{- include "watchtower.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "watchtower.controllerName" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "watchtower.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>watchtower</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">watchtower <span class="tag">observability · faz-1</span></div>
+    <nav id="tabs">
+      <button class="tab active" data-page="overview">Overview</button>
+      <button class="tab" data-page="connectivity">Connectivity</button>
+    </nav>
+    <div class="hdr-right">
+      <button id="warn-btn" class="tab" title="every warning and broken link in the cluster map" aria-expanded="false" aria-controls="warn-panel">Warnings <span id="warn-count" class="badge pending">0</span></button>
+      <div class="conn"><span id="conn-dot" class="dot off"></span><span id="conn-label">offline</span></div>
+    </div>
+  </header>
+  <div id="warn-panel" class="warn-panel hidden" role="dialog" aria-label="Warnings">
+    <div class="modal-head"><span id="warn-title">warnings</span><button id="warn-close" class="modal-close" title="close (Esc)">×</button></div>
+    <div class="warn-filters">
+      <input id="warn-text" placeholder="filter text" autocomplete="off">
+      <select id="warn-ns"><option value="">all namespaces</option></select>
+    </div>
+    <div id="warn-list" class="warn-list"></div>
+  </div>
+  <div id="search-drop" class="search-drop hidden" role="listbox"></div>
+  <main>
+    <aside id="sidebar-overview">
+      <h2>cluster map</h2>
+      <label>namespace
+        <select id="ns-filter"><option value="">all namespaces</option></select>
+      </label>
+      <label>find resource
+        <input id="res-search" placeholder="name, ns/name or kind" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="search-drop">
+      </label>
+      <h2>host trace</h2>
+      <form id="ov-trace-form">
+        <label>host
+          <input id="ov-host" list="host-list" placeholder="portfolio.example.com" autocomplete="off">
+        </label>
+        <label>test path
+          <input id="ov-path" placeholder="/" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="field-help">checks route configuration only, no request is sent</div>
+        <button type="submit">trace host</button>
+      </form>
+      <div id="ov-trace" class="stats"></div>
+      <div id="map-stats" class="stats"></div>
+      <button id="fit-btn" class="ghost-btn">fit to view</button>
+      <button id="flow-btn" class="ghost-btn" title="animate traffic direction on edges">flow on</button>
+      <h2>legend</h2>
+      <ul class="legend">
+        <li><span class="k namespace">namespace</span></li>
+        <li><span class="k deployment">deployment</span></li>
+        <li><span class="k deployment">statefulset</span></li>
+        <li><span class="k deployment">daemonset</span></li>
+        <li><span class="k service">service</span></li>
+        <li><span class="k pod">pod</span></li>
+        <li><span class="k port">port</span></li>
+        <li><span class="k ingress">ingress</span></li>
+        <li><span class="k ingress">ingressclass</span></li>
+        <li><span class="k ingress">gateway</span></li>
+        <li><span class="k ingress">virtualservice</span></li>
+      </ul>
+    </aside>
+    <aside id="sidebar-connectivity" class="hidden">
+      <div id="mode-toggle">
+        <button class="tab active" data-mode="workload">Workload</button>
+        <button class="tab" data-mode="host">Host</button>
+      </div>
+      <div id="conn-host" class="hidden">
+        <form id="host-form">
+          <h2>host trace</h2>
+          <label>host
+            <input id="trace-host" list="host-list" placeholder="portfolio.example.com" autocomplete="off">
+          </label>
+          <label>test path
+            <input id="trace-path" placeholder="/" autocomplete="off" spellcheck="false">
+          </label>
+          <div class="field-help">checks route configuration only, no request is sent</div>
+          <label>scheme
+            <select id="trace-scheme"><option value="">auto (http)</option><option value="http">http</option><option value="https">https</option></select>
+          </label>
+          <button type="submit">run trace</button>
+          <div id="trace-error" class="error"></div>
+        </form>
+        <h2>branches</h2>
+        <ul id="branch-list"></ul>
+      </div>
+      <div id="conn-workload">
+      <form id="new-check">
+        <h2>new check</h2>
+        <label>namespace
+          <select id="check-ns" name="namespace"><option value="default">default</option></select>
+        </label>
+        <label>target
+          <select id="check-target" name="target" required><option value="">— pick a workload —</option></select>
+        </label>
+        <label>service (optional)
+          <select id="check-service" name="serviceName"><option value="">— none —</option></select>
+        </label>
+        <label>port <input name="port" type="number" placeholder="optional"></label>
+        <button type="submit">run check</button>
+        <div id="form-error" class="error"></div>
+      </form>
+      <h2>checks</h2>
+      <ul id="check-list"></ul>
+      </div>
+    </aside>
+    <datalist id="host-list"></datalist>
+    <section id="graph-panel">
+      <div id="graph-empty">connecting…</div>
+      <div id="cy-wrap">
+        <div id="cy"></div>
+        <div id="labels"></div>
+      </div>
+    </section>
+  </main>
+  <footer id="steps-panel">
+    <h2 id="steps-title">details</h2>
+    <ol id="step-list"></ol>
+  </footer>
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head"><span id="modal-title"></span><button id="modal-close" class="modal-close">×</button></div>
+      <div id="modal-body" class="modal-body">
+        <div id="modal-cy"></div>
+        <div id="modal-labels"></div>
+      </div>
+      <div id="modal-warnings" class="modal-head hidden"></div>
+    </div>
+  </div>
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="vendor/dagre.min.js"></script>
+  <script src="vendor/cytoscape-dagre.js"></script>
+  <script src="graphkit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

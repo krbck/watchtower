@@ -1,0 +1,46 @@
+# One-shot stack for beginners: CRD install + manager (out-of-cluster) + UI.
+# Usage: LOCAL_UID=$(id -u) LOCAL_GID=$(id -g) docker compose up -d --build
+name: dp-watchtower
+
+services:
+  # Installs the ConnectivityCheck CRD into the cluster (idempotent).
+  # Exits after success; the manager waits for it.
+  dp-crd-install:
+    image: bitnami/kubectl:latest
+    user: "root"
+    volumes:
+      - ${KUBECONFIG:-${HOME}/.kube/config}:/kubeconfig:ro
+      - ./config/crd:/crd:ro
+    environment:
+      - KUBECONFIG=/kubeconfig
+    command: ["apply", "-f", "/crd/connectivitychecks.yaml"]
+    restart: "no"
+
+  # Runs out-of-cluster with your kubeconfig (read-only mount).
+  # If you run `make run` locally, stop it first (ports 8482/8080).
+  dp-watchtower-manager:
+    build:
+      context: .
+      target: manager
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ${KUBECONFIG:-${HOME}/.kube/config}:/kubeconfig:ro
+    environment:
+      - KUBECONFIG=/kubeconfig
+    command: ["--api-bind-address=:8482"]
+    ports:
+      - "8482:8482"
+    depends_on:
+      dp-crd-install:
+        condition: service_completed_successfully
+
+  dp-watchtower-ui:
+    build:
+      context: .
+      target: ui
+    environment:
+      - WATCHTOWER_API_URL=http://dp-watchtower-manager:8482
+    ports:
+      - "8080:8080"
+    depends_on:
+      - dp-watchtower-manager

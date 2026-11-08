@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "watchtower: start (folder open)",
+      "type": "shell",
+      "command": "bash scripts/dev.sh up",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "watchtower: stop",
+      "type": "shell",
+      "command": "bash scripts/dev.sh down",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "watchtower: status",
+      "type": "shell",
+      "command": "bash scripts/dev.sh status",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "watchtower: logs",
+      "type": "shell",
+      "command": "bash scripts/dev.sh logs",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    }
+  ]
+}

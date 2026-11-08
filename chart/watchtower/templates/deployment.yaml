@@ -1,0 +1,85 @@
+{{- if .Values.deployManager }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "watchtower.controllerName" . }}
+  labels:
+    {{- include "watchtower.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "watchtower.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      watchtower.krbck.io/component: controller
+  template:
+    metadata:
+      labels:
+        {{- include "watchtower.labels" . | nindent 8 }}
+        watchtower.krbck.io/component: controller
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "watchtower.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --leader-elect={{ gt (int64 .Values.replicaCount) 1 }}
+            - --api-bind-address=:{{ .Values.controller.api.port }}
+            - --integration-istio={{ include "watchtower.istioMode" . }}
+            {{- if not .Values.controller.metrics.enabled }}
+            - --metrics-bind-address=0
+            {{- end }}
+          ports:
+            {{- if .Values.controller.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.controller.metrics.port }}
+              protocol: TCP
+            {{- end }}
+            - name: health
+              containerPort: {{ .Values.controller.health.port }}
+              protocol: TCP
+            - name: api
+              containerPort: {{ .Values.controller.api.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

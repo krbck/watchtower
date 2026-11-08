@@ -1,0 +1,77 @@
+# watchtower helm chart — values
+# Every component is toggled from here (D-001: policy-gated modularity).
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/krbck/watchtower-manager
+  # when empty the chart falls back to appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# phase 1: only the ConnectivityCheck controller. UI and other modules
+# (D-001) get their own blocks here as they are added.
+controller:
+  enabled: true
+  rbac:
+    create: true
+  metrics:
+    enabled: true
+    port: 8480
+  health:
+    port: 8481
+  # REST + WebSocket API consumed by the UI (D-008/D-013).
+  api:
+    port: 8482
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+serviceAccount:
+  create: true
+  name: ""
+
+# faz-1 UI: separate deployment (D-001); serves the embedded web app and
+# proxies /api to the manager API service.
+ui:
+  enabled: true
+  image:
+    repository: ghcr.io/krbck/watchtower-ui
+    tag: ""
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  resources:
+    limits:
+      cpu: 100m
+      memory: 64Mi
+    requests:
+      cpu: 20m
+      memory: 32Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Optional integrations (D-036): auto = enable at runtime when detected,
+# true = required (manager logs a warning while missing), false = off (its
+# RBAC is not rendered either).
+integrations:
+  istio:
+    # Istio VirtualService/Gateway in the Overview map (D-037); read-only.
+    enabled: auto
+
+# Out-of-cluster development mode: the manager runs locally; the chart only
+# applies CRD + RBAC. Default: full deployment.
+deployManager: true

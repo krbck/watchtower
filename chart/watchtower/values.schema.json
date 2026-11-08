@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "istio": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "description": "auto | true | false (D-036)",
+              "enum": ["auto", true, false]
+            }
+          }
+        }
+      }
+    }
+  }
+}

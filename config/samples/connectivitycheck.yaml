@@ -1,0 +1,9 @@
+apiVersion: watchtower.krbck.io/v1alpha1
+kind: ConnectivityCheck
+metadata:
+  name: demo-check
+  namespace: default
+spec:
+  target: myapp
+  # serviceName: myapp-svc   # set when the Service name differs
+  # port: 8080               # set when the app port is known

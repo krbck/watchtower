@@ -1,0 +1,165 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: connectivitychecks.watchtower.krbck.io
+  annotations:
+    watchtower.krbck.io/generated-by: manual
+spec:
+  group: watchtower.krbck.io
+  scope: Namespaced
+  names:
+    plural: connectivitychecks
+    singular: connectivitycheck
+    kind: ConnectivityCheck
+    shortNames:
+      - ccheck
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: State
+          type: string
+          jsonPath: .status.state
+        - name: Target
+          type: string
+          jsonPath: .spec.target
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - target
+              properties:
+                target:
+                  type: string
+                  minLength: 1
+                  description: Workload name to check (deployment/statefulset/pod prefix).
+                serviceName:
+                  type: string
+                  description: Service to check; when empty it defaults to target.
+                port:
+                  type: integer
+                  format: int32
+                  description: Port the app listens on; when 0 the chain runs in discovery mode.
+            status:
+              type: object
+              properties:
+                state:
+                  type: string
+                  description: Pending | Passed | Failed
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - ok
+                    properties:
+                      name:
+                        type: string
+                      ok:
+                        type: boolean
+                      detail:
+                        type: string
+                      hint:
+                        type: string
+                topology:
+                  type: object
+                  properties:
+                    nodes:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - id
+                          - kind
+                          - label
+                        properties:
+                          id:
+                            type: string
+                          kind:
+                            type: string
+                            description: client | service | pod | port | app | namespace | deployment | statefulset | daemonset | ingress | gateway | virtualservice
+                          label:
+                            type: string
+                          namespace:
+                            type: string
+                          ok:
+                            type: boolean
+                          detail:
+                            type: string
+                          meta:
+                            type: object
+                            additionalProperties:
+                              type: string
+                          ports:
+                            type: array
+                            items:
+                              type: object
+                              required:
+                                - port
+                              properties:
+                                port:
+                                  type: integer
+                                  format: int32
+                                targetPort:
+                                  type: string
+                                nodePort:
+                                  type: integer
+                                  format: int32
+                                protocol:
+                                  type: string
+                                matched:
+                                  type: boolean
+                                reason:
+                                  type: string
+                                  description: Machine-readable code for an unmatched port (D-037).
+                                hint:
+                                  type: string
+                                  description: Human explanation of reason plus the suggested fix.
+                          warnings:
+                            type: array
+                            description: Explained configuration issues on this node (D-037).
+                            items:
+                              type: object
+                              properties:
+                                reason:
+                                  type: string
+                                message:
+                                  type: string
+                                hint:
+                                  type: string
+                                items:
+                                  type: array
+                                  items:
+                                    type: string
+                    edges:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - from
+                          - to
+                        properties:
+                          from:
+                            type: string
+                          to:
+                            type: string
+                          label:
+                            type: string
+                          ok:
+                            type: boolean
+                observedGeneration:
+                  type: integer
+                  format: int64
+                lastCheckedAt:
+                  type: string
+                  format: date-time

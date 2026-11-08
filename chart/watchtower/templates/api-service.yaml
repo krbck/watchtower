@@ -1,0 +1,21 @@
+{{- if .Values.deployManager }}
+# Cluster-internal API endpoint for the UI (D-008: ClusterIP + cluster DNS,
+# no mesh).
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "watchtower.fullname" . }}-api
+  labels:
+    {{- include "watchtower.labels" . | nindent 4 }}
+    watchtower.krbck.io/component: controller
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ include "watchtower.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    watchtower.krbck.io/component: controller
+  ports:
+    - name: api
+      port: {{ .Values.controller.api.port }}
+      targetPort: api
+{{- end }}
